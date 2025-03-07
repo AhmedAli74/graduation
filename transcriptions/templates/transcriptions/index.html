@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Speech & Transcription App</title>
+</head>
+<body>
+    <h1>Transcription & Text-to-Speech App</h1>
+    
+    <h2>Upload Audio File for Transcription:</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" accept="audio/*" name="audio_file" />
+        <button id="upload-button" type="submit">Upload</button>
+    </form>
+    
+    <h2>Transcript:</h2>
+    {% if error %}
+    <p id="error" style="color: red">{{ error }}</p>
+    {% endif %}
+    <p id="transcript">{{ transcript }}</p>
+    
+    <h2>Text-to-Speech Converter:</h2>
+    <form id="tts-form">
+        {% csrf_token %}
+        <textarea id="text-input" name="text" rows="4" cols="50" placeholder="Enter text here..."></textarea><br>
+        <button type="submit">Convert to Speech</button>
+    </form>
+    <audio id="audio-output" controls style="display: none;"></audio>
+
+    <script>
+        document.getElementById("tts-form").addEventListener("submit", function(event) {
+    event.preventDefault();
+    const text = document.getElementById("text-input").value;
+    
+    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+    fetch("/text-to-speech/", {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrfToken
+        },
+        body: `text=${encodeURIComponent(text)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.audio_url) {
+            const audioElement = document.getElementById("audio-output");
+            audioElement.src = data.audio_url;
+            audioElement.style.display = "block";
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(error => console.error("Error:", error));
+});
+        
+        const errorEl = document.getElementById("error");
+        const transcriptEl = document.getElementById("transcript");
+        const fileUploadBtn = document.getElementById("upload-button");
+        fileUploadBtn.addEventListener("click", updateTranscriptionText);
+        async function updateTranscriptionText() {
+            if (errorEl) {
+                errorEl.remove();
+            }
+            transcriptEl.innerText = "Transcribing...";
+        }
+    </script>
+</body>
+</html>
